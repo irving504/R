@@ -1,0 +1,629 @@
+---
+title: "Frausto_Irving_hw3"
+author: "Irving Frausto"
+format: 
+  html:
+    self-contained: true 
+editor: visual
+execute: 
+  message: false
+  warning: false
+---
+
+1\.
+
+```{r}
+library(openintro)
+library(gtsummary)
+library(dplyr)
+library(tidyselect)
+data(piracy)
+```
+
+2\.
+
+```{r}
+piracy <-piracy |>
+  filter(party != "I")
+
+piracy$party <- droplevels(piracy$party)
+```
+
+```{r}
+piracy |>
+  tbl_summary(by = party,
+              include = c(money_pro,money_con,years,stance,chamber),
+              statistic = list(
+                all_categorical() ~ "{n} ({p}%)",
+              all_continuous() ~ "{mean} ({sd})"
+              ),
+              label = list(
+                money_pro ~ "Money from Pro Orgs:",
+                money_con ~ "Money from Anti Orgs:",
+                stance ~ "Stance on Issue:",
+                chamber ~ "Chamber:",
+                years ~ "Years in Office:"
+              ))
+
+```
+
+3.  \(a\)
+
+```{r}
+average <-mean(piracy$years)
+average
+sd(piracy$years)
+```
+
+(b) 
+
+```{r}
+interval_68_A <-mean(piracy$years) - sd(piracy$years) 
+interval_68_B <-mean(piracy$years) + sd(piracy$years)
+
+interval_95_A <-mean(piracy$years) - 2*sd(piracy$years)
+interval_95_B <-mean(piracy$years) + 2*sd(piracy$years)
+
+interval_997_A <-mean(piracy$years) - 3*sd(piracy$years)
+interval_997_B <-mean(piracy$years) + 3*sd(piracy$years)
+```
+
+Empirical Rule:
+
+-   68%: (1.98, 21.53)
+
+-   95%: (-7.81, 31.31)
+
+-   99.7%: (-17.59, 41.10)
+
+4.  
+
+```{r}
+count_68 <-sum(piracy$years >= interval_68_A & piracy$years >= interval_68_B)
+count_68
+
+count_95 <-sum(piracy$years >= interval_95_A & piracy$years >= interval_95_B)
+count_95
+
+count_997 <-sum(piracy$years >= interval_997_A & piracy$years >= interval_997_B)
+count_997
+```
+
+Observation Analysis#1:
+
+When comparing the theoretical values (ex. interval_68_A) to the observed values (ex. count_68) somewhat expected. It seems the majority of the data can be found within the 68% percent range. When observing the 95% and 99.7% range, it seems to fall within the expected range. Essentially it seems that, the data is somewhat normal just a slightly higher for the 68% range than expected.
+
+5\.
+
+```{r}
+#make a qqplot for years. Comment on varibale appears normal and if this supports your findings
+qqplot(piracy$chamber, piracy$years, plot.it = TRUE,
+         xlab = "Political Member, Chamber",
+       ylab = "Years of Service, Congress",
+       main = "Years of Service Based on Chamber",
+       col = c("lightgreen","red"))
+```
+
+Observation Analysis#2:
+
+Analyzing the variables of years and chamber we can identify that the majority of political members in both the house and senate roughly have the same range of number for years in service (interquartile range is roughly same (Q1,Q2,Q3)). There exist some overlap between the house maximum and the senate minimum, which is roughly 20 years. This goes to show that a majority of of the data falls within the expected ranges.
+
+6\.
+
+```{r}
+piracy %>%
+  group_by(stance) %>%
+   filter(stance == "yes") %>%
+   select(stance) %>%
+   count(stance) 
+```
+
+```{r}
+sample_p<-mean(piracy$stance == "yes")
+sample_p
+```
+
+7\.
+
+```{r}
+n <- 63
+size <- 10000
+#zoom vid said set seed but? where would this go? 
+samp_mean <-function(n,size){
+  s_mean <-rep(NA, size) #empty vector(s_mean) vector of NA's that 10k length 
+  
+  for(i in 1:size){
+    x <- rexp (n, rate = 1)
+    s_mean[i] <- mean(x) #stores the mean
+  }
+  return(s_mean)
+}
+
+set.seed(09302003)
+s_mean30 <- samp_mean(30, size)
+
+set.seed(09302003)
+s_mean50 <-samp_mean(50, size)
+
+set.seed(09302003)
+s_mean100 <-samp_mean(100, size)
+```
+
+8\.
+
+```{r}
+#S_mean30
+true_mean30 <- mean(s_mean30)
+std_30 <- sd(s_mean30)
+#S_mean50
+true_mean50 <- mean(s_mean50)
+std_50 <- sd(s_mean50)
+#S_mean100
+true_mean100 <- mean(s_mean100)
+std_100 <- sd(s_mean100)
+```
+
+Test Run
+
+```{r}
+data.frame(
+  sample_size = c("n=30","n=50","n=100"),
+  s_mean = c(true_mean30,true_mean50,true_mean100),
+  standard_dev = c(std_30,std_50,std_100)
+)
+```
+
+9\.
+
+```{r}
+s_mean = c(true_mean30,true_mean50,true_mean100)
+standard_dev = c(std_30,std_50,std_100)
+
+theo_mean = mean(s_mean)
+theo_standard_dev = sd(standard_dev)
+```
+
+When comparing the theo_mean to the s_mean we can see a correlation between the mean and standard deviation. The variable "s_mean" is showing that the more the sample size increase (n = the number of legislators), we obtain the more accurate mean. Likewise when we compare the theo_standard_dev to the standard_dev as the sample size increases, the margin of error decreases. They work opposite of each other.
+
+```{r}
+par(mfrow = c(1,3))
+hist(s_mean30)
+hist(s_mean50)
+hist(s_mean100)
+```
+
+11\.
+
+```{r}
+par(mfrow = c(1,3))
+qqnorm(s_mean30)
+qqline(s_mean30,col = "blue", lwd = 2)
+qqnorm(s_mean50)
+qqline(s_mean50,col = "blue", lwd = 2)
+qqnorm(s_mean100)
+qqline(s_mean100,col = "blue", lwd = 2)
+```
+
+\
+
+When looking at the three QQ plots (left \[30\]-\> middle\[50\] -\> right\[100\]) we notice a few key details. Looking at left\[30\] is an S shape and less points following the line. Another aspect we can notice is the tails, which show us that left\[30\] has more outliers which deviate it from the line. Likewise the middle \[50\] still has an S shape but to a lesser degree than previously mentioned. While still not entirely flat due to the still protruding tails but to a lesser extent then the one before it. When observing right \[100\] we can see an almost perfect line up with the line, some outliers but not extreme like the two before it. This goes to show that right \[100\] has the most normality while the other two seem to have less of.
+
+12. When the large count condition is not met that indicates that the sample size isn't normal. As such, when looking at my previous analysis of question 11, I don't believe it would be appropriate to use the CTL for these sample sizes. The left \[30\] and middle \[50\] follow more of an S shaped than a straight line. This would indicate that its not normal and it has some extreme outliers. My results for the histogram and qqplot would support my conclusion.
+
+## Reflection:
+
+13. What I found difficult was the more complex and in depth terminology we are using. Even while reviewing the material I still feel like its not enough. Just means I need to study more of the terminology by review lecture recordings and emailing Dr./Professor Moore. Having AI breakdown complex terminology in ways I can grasp easily really helped be more efficient this time around. However I don't want to rely on that all the time only if I really really don't understand it.
+14. If I were to give myself a rating:
+    13. M
+
+## Appendix: Use of Generative AI
+
+**AI Tool Used**: Gemini
+
+**Explanation of Use**: I used AI to help me understand key parts of the assignment: code troubleshooting, conceptual clarification, and problem solving strategies. For code troubleshooting, I fed it R code and error messages in order to understand where I went wrong and fix some errors in my data structure. Next, conceptually it helped me get a better grasp of set.seed and how QQ plots tie into CTL. Finally, I used it to see if I was understanding the questions and approching it correctly. The AI helped correct R functions to be able to create the vizualizations and tables.
+
+**Reason for Use**: I used the AI to help me overcome conceptual roadblocks and very technical questions. It really helped me understand where I was going wrong in my R code. Particularly I was stuck on how to create the plot with three variables and tables. The AI also helped me grasp stats concepts in a simpler way which allowed me to better understand the concepts the assignment was hinting it. This helped me complete my assignment more efficiently.
+
+**Me**: I am confused. So I already created a sample proportion for people who voted yes on a particular legislation. I already created 10,000 seperate samples of legislators of size n=30,50,100. However my professor is asking me to "...set a seed before generating each set of random samples using your birth date(e.g. 01011990). For each sample, calculate the sample proportion of supporters. You do not need to print any output."
+
+\
+
+I already typed out my code which I will past below. I tried seeing how it works by using the ?help(set.seed) but still not quite sure how it functions?
+
+\
+
+{r}
+
+n \<- 63
+
+size \<- set.seed(10000)
+
+#zoom vid said set seed but? where would this go? 
+
+samp_mean \<-function(n,size){
+
+  s_mean \<-rep(NA, size) #empty vector(s_mean) vector of NA's that 10k length 
+
+  
+
+  for(i in 1:size){
+
+    x \<- rexp (n, rate = 1)
+
+    s_mean\[i\] \<- mean(x) #stores the mean
+
+  }
+
+  return(s_mean)
+
+}
+
+s_mean30 \<- samp_mean(30, size)
+
+s_mean50 \<-samp_mean(50, size)
+
+s_mean100 \<-samp_mean(100, size)
+
+\
+
+TEST RUN:
+
+\## Seed the current RNG, i.e., set the RNG status
+
+set.seed(42); u1 \<- runif(50)
+
+set.seed(42); u2 \<- runif(100) \# the same because of identical RNG status:
+
+stopifnot(identical(u1, u2))
+
+**AI**:
+
+I understand your confusion. The `set.seed()` function is used to make random processes, like generating samples, reproducible. Your professor wants you to use it so that if they run your code, they will get the exact same random samples you did.
+
+Here is a breakdown of how `set.seed()` works and how to apply it to your code:
+
+**How `set.seed()` works:**
+
+-   `set.seed()` initializes R's random number generator with a specific starting value (the "seed").
+
+-   If you use the same seed, the sequence of "random" numbers that follow will be identical every time you run the code.
+
+-   The placement of `set.seed()` is important. It must be called right before the code that generates the random numbers.
+
+**How to apply this to your homework:** Your professor's instructions specify to "set a seed before generating **each set** of random samples." This means you should call `set.seed()` before creating the samples for n=30, n=50, and n=100.
+
+Here is a corrected version of your code that incorporates `set.seed()` correctly, using your example birth date `01011990`.
+
+R
+
+```         
+# Set a seed for the n=30 sample
+set.seed(01011990)
+s_mean30 <- samp_mean(30, size)
+
+# Set a different seed for the n=50 sample
+set.seed(01011990)
+s_mean50 <-samp_mean(50, size)
+
+# Set another seed for the n=100 sample
+set.seed(01011990)
+s_mean100 <-samp_mean(100, size)
+```
+
+**Note:** In your provided `samp_mean` function, the code `x <- rexp (n, rate = 1)` generates the random numbers. Therefore, the `set.seed()` function needs to be called right before you run your `samp_mean` function to generate each of the three sets of data. You should also correct your `size` variable, as `set.seed(10000)` doesn't store the number 10000; it just sets the seed. You should assign `size <- 10000`.
+
+**Me**: I am stumped! So for the next question its asking me to make a table using the mean of the previous values, however I tried using tbl_summary but it seems to work primarly more with the dataset than the variables we have created. So i decided to pivot towards just using table() function but it doesnt look as asthetically pleasing. Can you let me know if I am moving towards the right direction? Or is there some function/r package im missing that would allow me to solve the question.
+
+\
+
+Question:
+
+8)  Compute the overall mean and standard error from each simulated sampling distribution
+
+(this time you should have 3 means and 3 standard deviations total). Display these statistics in a well-organized table
+
+\
+
+my code: (excluding my test runs --\> got those test run codes from ?help function)
+
+{r}
+
+#S_mean30
+
+true_mean30 \<- mean(s_mean30)
+
+std_30 \<- sd(s_mean30)
+
+#S_mean50
+
+true_mean50 \<- mean(s_mean50)
+
+std_50 \<- sd(s_mean50)
+
+#S_mean100
+
+true_mean100 \<- mean(s_mean100)
+
+std_100 \<- sd(s_mean100)
+
+test run:
+
+{r}
+
+table(true_mean30)
+
+table(std_30)
+
+table(true_mean50)
+
+table(std_50)
+
+table(true_mean100)
+
+table(std_100)
+
+**AI**: You're on the right track by calculating the means and standard deviations, but the `table()` function is designed to count frequencies, not to display a summary of calculated values like means and standard deviations. This is why the output isn't aesthetically pleasing.
+
+To create a clean, well-organized table, you can use several simple methods in R without needing a complex package like `tbl_summary`, which is more for a full dataset.
+
+Solution 1: Use a Data Frame
+
+This is the most common and effective way to create a table from scratch.
+
+R
+
+```         
+# Create a data frame to hold your results
+results <- data.frame(
+  Sample_Size = c("n=30", "n=50", "n=100"),
+  Overall_Mean = c(mean(s_mean30), mean(s_mean50), mean(s_mean100)),
+  Standard_Error = c(sd(s_mean30), sd(s_mean50), sd(s_mean100))
+)
+
+# Print the data frame
+print(results)
+```
+
+This will produce a clear, readable table with labeled rows and columns.
+
+Solution 2: Use `tibble` (from the `tidyverse`)
+
+If you're comfortable with `tidyverse` packages, `tibble` provides a clean and modern way to build a data frame.
+
+R
+
+```         
+library(tibble)
+
+results <- tibble(
+  Sample_Size = c("n=30", "n=50", "n=100"),
+  Overall_Mean = c(mean(s_mean30), mean(s_mean50), mean(s_mean100)),
+  Standard_Error = c(sd(s_mean30), sd(s_mean50), sd(s_mean100))
+)
+
+print(results)
+```
+
+Both methods will give you a clean, organized table that meets the requirements of the question. You are correct that `tbl_summary()` is not the right tool for this task, as it's designed for summarizing variables within a dataset. Creating your own small data frame is the correct approach here.
+
+**Me**:why isnt this code I will paste below not working? I was originally just using hist() to see the variable "s_mean30" but when i tried to impliment three variables it wasn't working so i decided to switch to ggplot given that we used that in a different class and it was easier to work with. So now that I am trying to use the ggplot to test out with "s_mean30" its not working im not sure why?
+
+\
+
+Here is the code and error:
+
+\> ggplot(data = s_mean30)++ geom_histogram(binwidth = 0.02)++ labs(+ title = "Sampling distribution of Sample Proportions",+ subtitile = "Sample Size = 30, Number of Samples = 10,000"+ )Error in \`fortify()\`:! \`data\` must be a \<data.frame\>, or an object coercible by \`fortify()\`, or a valid \<data.frame\>-like object coercible by \`as.data.frame()\`.Caused by error in \`.prevalidate_data_frame_like_object()\`:! \`dim(data)\` must return an \<integer\> of length 2.Run \`rlang::last_trace()\` to see where the error occurred.
+
+\>
+
+**AI**:The error message `! 'data' must be a <data.frame>` explains the problem. `ggplot()` requires a data frame, but your object `s_mean30` is a vector, not a data frame.
+
+To fix this, you need to convert your vector into a data frame before passing it to `ggplot()`.
+
+Here is the corrected code:
+
+R
+
+```         
+library(ggplot2)
+
+# Convert your vector to a data frame
+s_mean30_df <- data.frame(s_mean = s_mean30)
+
+ggplot(data = s_mean30_df) + 
+  geom_histogram(binwidth = 0.02) + 
+  labs(
+    title = "Sampling distribution of Sample Proportions",
+    subtitle = "Sample Size = 30, Number of Samples = 10,000"
+  )
+```
+
+**Why this works:**
+
+-   `data.frame(s_mean = s_mean30)` wraps your vector `s_mean30` inside a data frame and gives it the column name `s_mean`.
+
+-   `ggplot()` can now correctly read and plot the data.
+
+-   The `+` between the `ggplot()` and `geom_histogram()` calls is the correct syntax for adding layers.
+
+-   The `subtitle` argument in `labs()` is a typo. It should be `subtitle`. I have corrected this in the code block above.
+
+**Me**: My code isn't working still. I reread the instructions but is there something I missed? I will paste my code + error along side the instruction question.
+
+instruction:
+
+Generate histograms of the three sampling distributions of the sample proportions and
+
+display them side-by-side (Optional: add a vertical line in each plot to show the mean
+
+and add a legend with the mean and standard error values)
+
+\
+
+code + error code:
+
+{r}
+
+library(ggplot2)
+
+s_mean_df \<- data.frame(s_mean30,s_mean50,s_mean100)
+
+ggplot(data = s_mean_df)
+
+       geom_histogram(binwidth = 0.02) + 
+
+  labs(
+
+    title = "Sampling distribution of Sample Proportions",
+
+    subtitle = "Sample Size = 30, Number of Samples = 10,000"
+
+  )
+
+\
+
+Error in \`+.gg\`:! Cannot add \<ggproto\> objects together.ℹ Did you forget to add this object to a \<ggplot\> object?Run \`rlang::last_trace()\` to see where the error occurred.
+
+Show Traceback
+
+Error in \`+.gg\`(geom_histogram(binwidth = 0.02), labs(title = "Sampling distribution of Sample Proportions", :
+
+ℹ Did you forget to add this object to a \<ggplot\> object?\
+**AI**:
+
+The error message "Did you forget to add this object to a \<ggplot\> object?" points to a syntax issue in your `ggplot` code.
+
+You are missing the `+` operator after the `ggplot()` function call. Each layer in a `ggplot` plot must be added with a `+`.
+
+Incorrect code:
+
+R
+
+```         
+ggplot(data = s_mean_df)
+    geom_histogram(binwidth = 0.02) +
+    labs(...)
+```
+
+Corrected code:
+
+R
+
+```         
+ggplot(data = s_mean_df) +  # <-- Missing +
+    geom_histogram(binwidth = 0.02) +
+    labs(...)
+```
+
+------------------------------------------------------------------------
+
+However, even with this fix, your current code will not produce side-by-side histograms because your data is in the "wide" format. `ggplot` works best with data in the "long" format.
+
+To solve the side-by-side histogram problem and fix your `ggplot` code, follow these steps:
+
+1.  **Combine your data into a single long data frame.**
+
+2.  **Use `facet_wrap()` or `facet_grid()`** to display the histograms side-by-side.
+
+Correct Code for Side-by-Side Histograms
+
+R
+
+```         
+library(ggplot2)
+library(tidyr) # For the pivot_longer() function
+
+# Combine your data into a single long data frame
+s_mean_df <- data.frame(s_mean30, s_mean50, s_mean100) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "sample_size",
+    values_to = "s_mean_value"
+  )
+
+# Create the histograms side-by-side
+ggplot(data = s_mean_df, aes(x = s_mean_value)) +
+  geom_histogram(binwidth = 0.02, fill = "lightblue", color = "black") +
+  facet_wrap(~ sample_size, ncol = 3) + # Use facet_wrap for side-by-side plots
+  labs(
+    title = "Sampling Distributions of Sample Proportions",
+    x = "Sample Proportion",
+    y = "Frequency"
+  )
+```
+
+**Me**: when analyzing a qq plot, what does "evalute the normality of each distribution" mean? Can you give me an example
+
+**AI**:When analyzing a Q-Q plot, "evaluating the normality of each distribution" means checking to see if the data points fall in a straight line on the plot.
+
+Here's a simple breakdown:
+
+-   **What a Q-Q Plot Does:** It compares the quantiles of your data to the quantiles of a theoretical normal distribution.
+
+-   **What "Normality" Means:** A normal distribution is a specific bell-shaped curve. A Q-Q plot helps you visually check if your data follows this shape.
+
+How to Evaluate
+
+-   **Normal Distribution:** If the data is normally distributed, the points on the Q-Q plot will form a straight diagonal line. This is what you're looking for.
+
+-   **Non-Normal Distribution:** If the points deviate significantly from the straight line, the data is not normally distributed.
+
+    -   **S-Shape:** A slight S-curve indicates the distribution has lighter tails than a normal distribution (less extreme values).
+
+    -   **"Reverse" S-Shape:** The opposite indicates heavier tails (more extreme values than expected).
+
+    -   **Curved Upward:** The data is skewed to the right (has a long tail on the right side).
+
+    -   **Curved Downward:** The data is skewed to the left (has a long tail on the left side).
+
+Example
+
+Imagine you have three data sets:
+
+-   **Data Set A (Normal):** The Q-Q plot shows a perfect straight line. **Conclusion:** This distribution is normal.
+
+-   **Data Set B (Skewed):** The Q-Q plot shows points that curve upward from the line. **Conclusion:** This distribution is not normal; it is right-skewed.
+
+-   **Data Set C (Heavy-tailed):** The Q-Q plot shows a "reverse" S-shape. **Conclusion:** This distribution is not normal; it has heavier tails than a normal distribution.
+
+**Me**: So i know for CLT there are two conditions that hold if a dataset follows normal distribution. They are based on my professors video, they are independence and normality. I am trying to understand the question my professor stated. The way I interpret it "is if CTL doesn't apply to n= 30 and n=50, then is it appropiate to use CTL in this particular instance."
+
+12\)
+
+The large counts condition for the CLT is not satisfied for n = 30 and n = 50. Comment on what this implies about the appropriateness of applying the Central Limit Theorem in each case. Use your previous results to back up your claim.
+
+**AI**: Your interpretation is close, but the key is the "large counts" condition, which is specific to proportions, not just any data.
+
+Here's a breakdown to clarify the question and how to answer it:
+
+The Two Conditions for Proportions
+
+For the Central Limit Theorem (CLT) to apply to **sample proportions**, there are two main conditions:
+
+1.  **Independence:** The samples are random and independent.
+
+2.  **Large Counts:** There are at least 10 successes and 10 failures in the sample. This is also written as np≥10 and n(1−p)≥10.
+
+Your professor is telling you that the second condition (np≥10 and n(1−p)≥10) is **not met** for your sample sizes of n=30 and n=50.
+
+What the Question is Asking
+
+The question asks:
+
+-   **What does it mean** that the large counts condition is not met?
+
+-   **Is it appropriate** to use the CLT for these sample sizes?
+
+-   **How do your results** (histograms and Q-Q plots) support your conclusion?
+
+Example of How to Answer
+
+1.  **Explain the implication:** The large counts condition is not met, which means the sampling distribution of the sample proportion may not be a normal distribution.
+
+2.  **Refer to your results:**
+
+    -   **For n=30 and n=50:** Look at your histograms. They should show some skew or a non-normal shape, unlike the bell curve you would expect from the CLT. Your Q-Q plots for these samples should show the points curving away from the straight line, confirming they are not normal.
+
+    -   **For n=100:** This sample size is likely large enough to satisfy the large counts condition. Therefore, its histogram should look more bell-shaped and its Q-Q plot should be a straighter line, confirming that the CLT applies in this case.
+
+By directly referencing the visuals you created, you can show how the theory (the large counts condition) plays out in practice.
