@@ -1,0 +1,452 @@
+---
+title: "frausto_irving_hw6"
+format: 
+ html:
+  self-contained: true
+editor: visual
+execute: 
+  echo: TRUE
+  message: FALSE
+  warning: FALSE
+---
+
+# Problem #1
+
+```{r}
+library(openintro)
+library(tidyverse)
+data("mariokart")
+```
+
+\
+a.
+
+The variable known as "wheels" should be treated as a quantitative variable due to the fact that we are just considering the amount of wheel each car has. If we were focusing on the materials that made up the wheels then we would go for categorical.
+
+```{r}
+ggplot(data = mariokart, aes(x = wheels, y = total_pr))+
+  geom_point()+
+  labs(
+    x = "Number of Wheels",
+    y = "Total Price in Dollars",
+    title = "Relationship between number of wheels & total price"
+  )
+  
+```
+
+```{r}
+#outliers
+mariokart|>
+    select(wheels, total_pr)|>
+    filter(total_pr >= 100)
+```
+
+***Will keep outliers!***
+
+\
+b.
+
+**Hypothesis Testing**
+
+$H_0:$ $\mu_1$-$\mu_2$ = 0
+
+$H_A:$ $\mu_1$-$\mu_2$ ≠ 0
+
+$n_1:$ wheels are included (106)
+
+$n_2:$ wheels aren't included (37)
+
+**Check Conditions**
+
+*Independence*:
+
+-   auction data, assume random sample?
+
+-   reasonable to assume the variables of avg total price wheels vs no wheels are independent?
+
+Normality:
+
+$n_1$, $n_2$ ≥ 30 —\> 106, 37 ≥ 30 (has two outliers tho...)
+
+OR
+
+$n_1$, $n_2$ \< 30 —\> 106, 37 \< 30 (data is approximately normal)
+
+```{r}
+n_2 <- mariokart|>
+  select(wheels)|>
+  filter(wheels == "0")|>
+  count()
+n_1 <- mariokart|>
+  select(wheels)|>
+  filter(wheels != "0")|>
+  count()
+```
+
+Calculate Test Statistic
+
+```{r}
+x_bar1 <- mariokart|>
+  select(wheels, total_pr)|>
+  filter(wheels == "0")|>
+  summarize(
+    avg_n1 = mean(total_pr)
+  )
+x_bar2 <- mariokart|>
+  select(wheels, total_pr)|>
+  filter(wheels != "0")|>
+  summarize(
+    avg_n2 = mean(total_pr)
+  )
+sd_1 <- mariokart|>
+  select(wheels, total_pr)|>
+  filter(wheels == "0")|>
+  summarize(
+    std_n1 = sd(total_pr)
+  )
+sd_2 <- mariokart|>
+  select(wheels, total_pr)|>
+  filter(wheels!= "0")|>
+  summarize(
+    std_n2 = sd(total_pr)
+  )
+stat <- x_bar1 - x_bar2
+null_value <- 0
+se <- sqrt(sqrt(sd_1^2/n_1 + sd_2^2/n_2))
+
+df <- min(c(106,37)) - 1
+
+t_stat <- (stat - null_value) / se 
+```
+
+Compute p-value
+
+```{r}
+p_val <- 2*pt(-abs(-5.424724), df = 36)
+```
+
+p-value = 4.0829
+
+Decision: Reject $H_0$
+
+Conclusion: We have enough evidence that the average total prices differ when wheels are included vs not included.
+
+Confidence intervals:
+
+```{r}
+stat + c(-1, 1) * qt(0.975, df = 36) * se
+```
+
+\
+2.
+
+```{r}
+library("gtsummary")
+data("helmet") # SUBSET, true data set called yrbss
+data("yrbss")
+```
+
+```{r}
+ggplot(helmet, aes(x = lunch, y = helmet)) +
+  geom_point()
+```
+
+\
+a. Table
+
+```{r}
+yrbss|>
+  tbl_summary(by = gender,
+              include = c(height, grade, helmet_12m),
+              statistic = list(
+                all_categorical() ~ "{n} ({p}%)",
+                all_continuous() ~ "{mean} ({sd})"
+              ),
+              label = list(
+                helmet_12m ~ "Helmet Used",
+                height ~ "Avg Height, in Meters",
+                grade ~"Academic Year"
+              ),
+              missing = c("no"),
+              sort = all_categorical(FALSE) ~ "alphanumeric")
+```
+
+\
+b. 5 Step Hypothesis Testing
+
+1.  **Hypothesis Testing**
+
+$p_1 ≠ p_2$ : true difference in proportion of (p1) men wore a helmet and (p2) women wore a helmet while riding a bike for the last 12 months is different.
+
+$H_0:$ $p_1$-$p_2$ = 0
+
+$H_A:$ $p_1$-$p_2$ ≠ 0
+
+2.  **Check Conditions**
+
+    Independence: Simple Random Sample
+
+    Large Counts:
+
+    $n_1$ $$\hat{p}_1$$≥5, $n_1$(1-$\hat{p}_1$) ≥ 5
+
+    $n_2$ $$\hat{p}_2$$≥5, $n_2$(1-$\hat{p}_2$) ≥ 5
+
+```{r}
+# not pooled 
+n1 <- 6621 # female 
+n2 <- 6950 # male 
+phat1 <- 1.62/n1 # female 
+phat2 <-1.76/n2 # male
+
+n1*phat1; n1*(1-phat1)
+n2*phat2; n2*(1-phat2)
+```
+
+3.  **Calculate test statistic**
+
+    ```{r}
+    est <- phat1 - phat2
+    est
+
+    se_phats <- sqrt((phat1*(1-phat1))/n1 + (phat2*(1-phat2))/n2)
+    se_phats
+
+    z_stat <- (est - 0) / se_phats
+    z_stat
+    ```
+
+4.  **Compute p-value**
+
+    ```{r}
+    pval <- pnorm(z_stat)
+    pval
+    ```
+
+    ```{r}
+    two_prop <- prop.test(c(n1, phat1), c(n2, phat2), alternative = "less", correct = FALSE)
+    two_prop
+
+    -sqrt(two_prop$statistic)
+    two_prop$p.value
+    ```
+
+5.  **Decision and conclusion in context**
+
+    **Decision**: Reject $H_0$
+
+    **Conclusion**: We have enough evidence that the true portion of male and female who wore a helmet while riding for the last 12 months isn't different.
+
+```{r}
+prop.test(c(6621, phat1), c(6950, phat2))$conf.int # look at the 95% CI interval 
+```
+
+\
+3. **The datasets::sleep dataset records the increase in hours of sleep experienced by 10\
+individuals after taking two different soporific drugs (group).**
+
+```{r}
+data("sleep")
+```
+
+```{r}
+qqnorm(sleep$extra)
+qqline(sleep$extra, col = "red")
+```
+
+Based on the QQplot, the data seems to follow approximate normal distribution. It seems data points appear to fall primarly in the center with a few outlier in the out regions however nothing too drastic.
+
+\
+a. Using a 5 step hypothesis test, try and answer the question: do individuals\
+experience a greater increase in sleep hours after taking Drug 2 (group = 2)\
+compared to Drug 1 (group = 1)? Check the normality condition using a QQ-plot.
+
+1.  **Hypothesis Testing**
+
+$p_1 > p_2$ : true difference in proportion of those individuals who took drug 2 (p2) over those individuals who took drug 1 (p1) experience a greater increase in sleep
+
+$H_0:$ $p_1$-$p_2$ = 0 (did experience greater sleep after taking drug 2 over drug 1)
+
+$H_A:$ $p_1$- $p_2$ ≥ 0 (didn't experience greater sleep after taking drug 2 over drug 1)
+
+2.  **Check Conditions**
+
+Independence: Assuming its a SRS
+
+Large Counts:
+
+2.  $n_1$ $$\hat{p}_1$$≥5, $n_1$(1-$\hat{p}_1$) ≥ 5
+
+    $n_2$ $$\hat{p}_2$$≥5, $n_2$(1-$\hat{p}_2$) ≥ 5
+
+```{r}
+#CODE TO CHECK "SUCCESS" 
+#sleep|>
+  #select(extra, group)|>
+  #filter(group == "1")
+#sleep|>
+  #select(extra, group)|>
+  #filter(group == "2")
+
+one_n = 10 #drug 1
+two_n = 10 #drug 2
+p_hat1 = 5/one_n # drug 1
+p_hat2 = 9/two_n # drug 2
+
+one_n*p_hat1; one_n*(1-p_hat1)
+two_n*p_hat2; two_n*(1-phat2)
+```
+
+3.  Calculate test statistic
+
+    ```{r}
+    e_s_t <- p_hat1 - p_hat2
+    e_s_t
+
+    SE_phats <- sqrt((p_hat1*(1-p_hat1))/one_n + (p_hat2*(1-p_hat2))/two_n)
+    SE_phats
+
+    Z_stat <- (e_s_t - 0) / SE_phats
+    Z_stat
+    ```
+
+4.  Calculate p-value
+
+    ```{r}
+    p_val <- pnorm(Z_stat)
+    p_val
+    ```
+
+5.  Make a decision and conclude in the context of the problem
+
+    **Decision**: Reject $H_0$
+
+    **Conclusion**: We have enough evidence that the proportion of those individuals who took drug 2 (p2) over those individuals who took drug 1 (p1) experience a greater increase in sleep
+
+Confidence interval
+
+```{r}
+prop.test(c(10, 5), c(10, 9))$conf.int # look at the 95% CI interval 
+```
+
+\
+b. Compute Cohen’s d and interpret magnitude and meaning.
+
+```{r}
+d <- (p_hat2 - p_hat1)/10
+```
+
+In this particular case Cohen's d value was 0.04 which signifies that drug 2 is slightly more effective than drug 1 however it has a negligible effect.
+
+**Reflection**\
+1. I think what I found difficult in this homework was recalling and applying the hypothesis testing we learned to this particular problems. Specifically problem one due to the fact that we really haven't practiced removing outliers and the reasoning behind them. Which means I think I need to practice more in knowing when to apply that removal of outliers additionally interpreting the results its something I need more practice with given particular contexts.
+
+\
+2. If I were to give myself a rating I would give myself a M/R given that I think I messed up problem #1\
+
+**Appendix: Use of Generative AI**
+
+**AI Used:** Gemini
+
+Explanation of Use:
+
+Reason for Use:
+
+**Full AI Exchange:**
+
+Me: anyways can you explain what cohens d is? How is it used? why is it used?
+
+AI: Cohen's d is a widely used measure of **effect size** in statistics. It quantifies the strength of the difference between two means.
+
+**What is Cohen's** d**?**
+
+Cohen's d is a measure of effect size that expresses the difference between two group means (μ1​ and μ2​) in terms of **standard deviation units**. Essentially, it tells you how many standard deviations separate the average person in one group from the average person in the other group.
+
+The basic formula for Cohen's d when comparing two independent groups is:
+
+d=spooled​μ1​−μ2​​
+
+Where:
+
+-   μ1​ and μ2​ are the means of the two groups being compared (e.g., control vs. treatment).
+
+-   spooled​ is the **pooled standard deviation** of the two groups, which serves as a standardized denominator.
+
+|                 |                            |
+|-----------------|----------------------------|
+| Cohen's d Value | Effect Size Interpretation |
+| **0.2**         | Small                      |
+| **0.5**         | Medium                     |
+| **0.8**         | Large                      |
+
+A value of d=0.5, for instance, means the means of the two groups are separated by half a standard deviation.
+
+------------------------------------------------------------------------
+
+**How is it Used?**
+
+Cohen's d is used primarily in research to interpret the practical significance of results, especially after performing a statistical test like a t-test.
+
+1.  **Standardization:** It standardizes the magnitude of the difference, making it possible to compare the effect size across different studies that use different scales or units of measurement. For example, you can compare the effect size of a reading program measured on a 100-point test to an anxiety treatment measured on a 20-point scale.
+
+2.  **Meta-Analysis:** It is the primary measure used in **meta-analysis** to synthesize the results of multiple studies on the same topic. Researchers can average the Cohen's d values from many different papers to get a better estimate of the true overall effect of an intervention.
+
+------------------------------------------------------------------------
+
+**Why is it Used?**
+
+Cohen's d is essential because it addresses a major limitation of traditional hypothesis testing: **statistical significance does not equal practical significance.**
+
+-   **Statistical Significance (p-value):** A p-value tells you the probability of observing your result by random chance. A small p-value (p\<0.05) only indicates that a difference **exists**. However, with a very large sample size, even a tiny, meaningless difference can be statistically significant.
+
+-   **Practical Significance (Cohen's** d): Cohen's d ignores the sample size and tells you **how big** the observed difference is in the real world.
+
+For example:
+
+-   An increase in student test scores by **0.01 points** might be statistically significant with a sample of 100,000 students, but it has no **practical** value. Cohen's d would correctly show this as a "small" or "trivial" effect.
+
+-   An increase in scores by **5 points** might have a d=0.8 (a large effect), which clearly shows that the intervention is very effective, regardless of whether the p-value was 0.001 or 0.049.
+
+In short, Cohen's d provides the necessary context to determine if a statistically significant result is **meaningful**.
+
+Me: so lets say we are testing for an effective drug and we are comparing to drug tests. Given that there is little room for error would conen's d have a higher meaning in that particular context?
+
+AI: Yes, in the context of testing an effective drug where there is **little room for error**, Cohen's d would have an **extremely high meaning and utility**.
+
+Here's why Cohen's d becomes critical in high-stakes fields like medicine:
+
+------------------------------------------------------------------------
+
+Why Cohen's d is Critical in Drug Testing
+
+1\. Focus on Practical Impact, Not Just Randomness
+
+In medical testing, researchers need to know if a drug works well enough to be worth the cost, risk, and side effects.
+
+-   **P-value:** A small p-value might suggest the new drug is *different* from the placebo, but if the improvement is tiny, the drug is useless.
+
+-   **Cohen's** d: This measure tells you the **magnitude** of the clinical improvement. For a high-stakes drug, you are looking for a **medium (**d≈0.5) or large (d≈0.8 and above) effect size. A large d means the drug provides a robust, meaningful benefit to the average patient, which is essential when lives are on the line.
+
+2\. Standardization for Decision-Making
+
+Cohen's d provides a standard, unit-free benchmark for comparing the new drug against existing treatments.
+
+-   If Drug A yields a d=0.4 and Drug B yields a d=0.9, the decision is clear: Drug B has a much larger effect and is the better choice, regardless of the different scales they might have used to measure patient health. This standardization is vital for regulatory bodies (like the FDA) making high-impact approval decisions.
+
+3\. Calculating the Risk-Benefit Ratio
+
+When comparing two drug tests, Cohen's d helps quantify the benefit side of the **risk-benefit ratio**. If a drug has severe side effects, only a **large effect size** (high Cohen's d) can justify its use. A statistically significant but small effect (d=0.2) would almost certainly be rejected in favor of a less risky or older treatment.
+
+In summary, Cohen's d moves the conversation beyond "Does it work?" (the p-value question) to **"How well does it work?"**—a question that is far more relevant and necessary in a context where errors or small effects carry significant human cost.
+
+Me:
+
+AI:
+
+Me:
+
+AI:
+
+Me:
+
+AI:
