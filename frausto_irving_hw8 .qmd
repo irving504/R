@@ -1,0 +1,288 @@
+---
+title: "Case Analysis: Study to Understand Prognoses & Preferences for Outcomes and Risks of Treatments (SUPPORT)"
+format: 
+ html:
+  self-contained: true
+editor: visual
+execute: 
+  message: false
+  warning: false
+---
+
+## HW8
+
+### Part 1:
+
+1\.
+
+```{r}
+library(dplyr)
+library(stringr)
+library(janitor)
+library(tidyverse)
+support <- read.csv("~/STATS_630/DATA/support.txt", sep="")
+```
+
+```{r}
+# Need to clean column names and identify the NA's
+support <- support|>
+  clean_names()
+
+sapply(support, function(x) sum(is.na(x)))
+```
+
+a\.
+
+```{r}
+support <- support|>
+  rename(length_stay = slos, 
+         disease_group = dzgroup, 
+         num_comorbid = num_co, 
+         total_cost = totcst)
+```
+
+b\.
+
+```{r}
+#1
+#a.
+unique(support$sex)
+
+support <- support|>
+  mutate(sex = str_to_title(sex))
+#b.
+unique(support$disease_group)
+
+support <- support|>
+  mutate(disease_group = str_to_title(disease_group))
+#c.
+unique(support$income)
+
+support <- support|>
+  mutate(income = str_to_title(income))
+#d.
+unique(support$race)
+
+support <- support|>
+  mutate(race = str_to_title(race))
+#2
+support <- support|>
+  mutate_if(is.character, as.factor)
+```
+
+c\.
+
+```{r}
+support <- support|>
+  mutate(log_total_cost = log(total_cost))
+```
+
+### Part 2:
+
+2\.
+
+```{r}
+ggplot(data = support, aes(x = total_cost))+
+  geom_histogram()+
+  labs(title = "Histogram of Total Cost",
+       xlab = "Total Cost")
+```
+
+3.The shape of the histogram appears to be right skewed with a tail extending towards the right. The shape implies that total_costs fall within a typical price range but have some extreme price ranges (outliers). The center of the histogram appears to be around 0.25e+05. Given that the data is skewed, the median would be a better reflection of the center instead of the mean. The spread of the histogram appears to be clustered to the left side with some spread on the points to the right side. Overall the histogram would suggest that total medical prices (total_cost) typically fall within the range of approximately 0e+00 to 1.5e+05 with some extreme cases of total medical prices that are double or even triple the cost.
+
+4\.
+
+```{r}
+ggplot(data = support, aes(x = age, y = total_cost))+
+  geom_point()+
+  labs(title = "Total Cost vs Age ",
+       x = "Age",
+       y = "Total Cost")
+```
+
+5\.
+
+```{r}
+#need to calculate sample size, sample mean, and sample standard deviation for total_cost across each income level
+support|>
+  group_by(income)|>
+  filter(income == ">$50k")|>
+  summarise(
+    n(),
+    avg_1 = mean(total_cost, na.rm = TRUE),
+    sd_1 = sd(total_cost,na.rm = TRUE))
+
+support|>
+  group_by(income)|>
+  filter(income == "$11-$25k")|>
+  summarise(
+    n(),
+    avg_2 = mean(total_cost, na.rm = TRUE),
+    sd_2 = sd(total_cost,na.rm = TRUE))
+
+support|>
+  group_by(income)|>
+  filter(income == "$25-$50k")|>
+  summarise(
+    n(),
+    avg_3 = mean(total_cost, na.rm = TRUE),
+    sd_3 = sd(total_cost,na.rm = TRUE))
+
+support|>
+  group_by(income)|>
+  filter(income == "Under $11k")|>
+  summarise(
+    n(),
+    avg_4 = mean(total_cost, na.rm = TRUE),
+    sd_4 = sd(total_cost,na.rm = TRUE))
+```
+
+```{r}
+table(support$income)
+```
+
+### Part 3:
+
+6.**Hypothesis**
+
+*explanatory(indep.) variable, X*: **age**
+
+*response(dep.) variable, Y:* **total_cost**
+
+Test Parameter: $p$
+
+$H_0:$ $\beta_1 = 0$ —\> There is **no linear relationship** between total_cost and age
+
+$H_0:$ $\beta_1 ≠ 0$ —\> There is **a linear relationship** between total_cost and age
+
+7.**Check conditions**
+
+The condition's are not satisfied because of the 4 condition's only 2 are acceptable (Linearity & Independence). The two conditions that didn't pass are "Normality of Residuals" & "Equal constant variance of the residuals". In failing these two conditions is an indication that extreme outliers exist in the dataset that could be influence points that pull on the line and unreliable t-statistics with could negatively influence the statistical significance.
+
+```{r}
+mod <- lm(total_cost ~ age, data = support)
+#linearity: acceptable (majority of points fall on line)
+ggplot(support, aes(x = age, y = total_cost)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE) +
+  labs(title = "Age vs. Total Cost",
+       x = "Age",
+       y = "Total Cost")
+#independence: based on the question, a random sample of 1000 patients 
+
+#normality of residuals: most points fall on the line, big variations in the tails isn't acceptable 
+qqnorm(resid(mod))
+qqline(resid(mod), col = "red")
+#Equal(constant) variance of the residuals: clustered around line, not too randomly scattered
+plot(resid(mod) ~ fitted(mod))
+abline(h = 0)
+```
+
+8.  **Hypothesis Testing:**
+
+*explanatory(indep.) variable, X*: **age**
+
+*response(dep.) variable, Y:* **log_total_cost**
+
+Test Parameter: $p$
+
+$H_0:$ $\beta_1 = 0$ —\> There is **no linear relationship** between log_total_cost and age
+
+$H_0:$ $\beta_1 ≠ 0$ —\> There is **a linear relationship** between log_total_cost and age
+
+**Check Conditions:**
+
+```{r}
+mod <- lm(log_total_cost ~ age, data = support)
+#linearity: acceptable (majority of points fall on line)
+ggplot(support, aes(x = age, y = log_total_cost)) +
+  geom_point() +
+  geom_smooth(method = 'lm', se = FALSE) +
+  labs(title = "Age vs. Total Cost",
+       x = "Age",
+       y = "Total Cost")
+#independence: based on the question, a random sample of 1000 patients 
+
+#normality of residuals: most points fall on the line, small variations in the tails are acceptable 
+qqnorm(resid(mod))
+qqline(resid(mod), col = "red")
+#Equal(constant) variance of the residuals: fairly randomly scattered about the line
+plot(resid(mod) ~ fitted(mod))
+abline(h = 0)
+```
+
+9\.
+
+**Calculate test statistic**
+
+```{r, echo=FALSE}
+summary(mod)$coef[2, 3]
+```
+
+**Compute p-value**
+
+```{r, echo=FALSE}
+summary(mod)$coef[2, 4]
+```
+
+**Decision & Conclusion**
+
+*Decision*: Reject $H_0$
+
+*Conclusion*: We have sufficient evidence of a negative linear relationship between total_cost and age
+
+10\. In the context of the problem, when interpreting the slope coefficient it suggests the average difference in log_total_cost (Y) for people whose age(X) differs by one unit.
+
+11. 
+
+**Hypothesis:**
+
+$\mu_1$ = "\>\$50k", $\mu_2$= "\$11-\$25k", $\mu_3$="\$25-\$50k, $\mu_4$ ="Under \$11k"
+
+$H_0:$ $\mu_1$=$\mu_2$=$\mu_3$= $\mu_4$
+
+$H_A:$ there exists a difference within the log of total hospital costs across income groups
+
+**Check Conditions:**
+
+Independence: *based on the question, a random sample of 1000 patients*
+
+Normality of residuals: *most points fall on the line, small variations in the tails are acceptable*
+
+```{r}
+mod <- lm(log_total_cost ~ income, data = support)
+qqnorm(resid(mod))
+qqline(resid(mod), col = "red")
+
+hist(resid(mod))
+```
+
+Equal(constant) variance of the residuals: *not randomly scattered about the line, all points vertical in separate parts*
+
+```{r}
+plot(resid(mod) ~ fitted(mod), main = "Residuals vs. Fitted")  
+abline(h = 0, col = "red") 
+```
+
+**Compute test statistic and p-value**
+
+```{r}
+a_mod <-aov(log_total_cost ~ income, data = support)
+summary(a_mod)
+```
+
+**Decision & Conclusion:**
+
+*Decision*: Reject $H_0$
+
+*Conclusion*: We have enough statistical evidence to conclude that the population means of (log) total hospital costs across the income groups differ among each other.
+
+### Part 4:
+
+12. In computing this analysis between the age of a patient and (log) of total hospital cost I discovered a negative linear relationship. In the context of this case, would suggest that as a person gets older the medical costs associated decline as well. To add more context to this seemingly contradiction, we have to consider a potential confounding variable the model didn't account for. Furthermore, when analyzing the differences in (log) total hospital costs across income groups, I discovered that (log) total hospital costs across different income groups differ among each other. In simple terms, within the 4 groups (\>50k, 11-25k, 25-50k, Under 11k ) there exist a difference in costs in one of the groups, so one of these groups experiences greater or reduced costs in comparison from the rest. Its important to considered how the data meet or fell short of the assumptions of the statistical model I used. I believe that the data somewhat meet expectations for when we redid the first model which was checking linear relationship, it meet expectations. However when trying to implement the one way ANOVA is when the data fell short when trying to be implemented in this model. Additionally the first model, could have potentially missed a confounding variable the could have explained why this negative linear relationship existed between age and (log) total hospital cost. The practical insights that these results suggest that the factors that influence hospital costs are most likely be in relation to the age and income of the patient given that cost differ based on income and we found a linear association with age. However the model did fail some key condition's as well as not accounting for a potential confounding variable. In simple term we don't know why the cost in medical care happen. We need a more complex model to figure out the key reasoning behind this cost difference.
+
+### Reflection:
+
+a.  Some of the difficulties I had with this case analysis was the interpretations of some of the visuals and tying it back to the context. I also redid the ANOVA test because I realized I did the incorrect version of it when reviewing the slides and activities for reference. Adding to that it took me a lot of rereading and brain dumping to properly figure out the significance of these results in relation to the medical cost differences.
+
+b.  If I were to give myself a rating I would give myself: **M/R**
